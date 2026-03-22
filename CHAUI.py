@@ -23,7 +23,7 @@ STREAMERS_TO_TRACK = [
     "0TV3CHAU"
 ]
 ALLOWED_CHAT_IDS = {-1002613122205}
-OWNER_ID = os.getenv("OWNER_ID")  # ID владельца для отправки логов
+OWNER_ID = 1487919102  # ID владельца для отправки логов
 
 CHECK_INTERVAL = os.getenv("CHECK_INTERVAL")
 SCREENSHOT_UPDATE_INTERVAL = os.getenv("SCREENSHOT_UPDATE_INTERVAL")
