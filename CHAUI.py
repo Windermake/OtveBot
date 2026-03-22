@@ -10,24 +10,51 @@ from pathlib import Path
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
-from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto, CallbackQuery
 from aiogram.enums import ParseMode
 
 # ========== КОНФИГУРАЦИЯ ==========
-# Получаем токен из переменных окружения, если их нет - используем для локального теста
+# Загружаем переменные окружения с преобразованием типов
 BOT_TOKEN = os.getenv("BOT_TOKEN") or os.getenv("API_TOKEN") or os.getenv("TELEGRAM_BOT_TOKEN")
 TWITCH_CLIENT_ID = os.getenv("TWITCH_CLIENT_ID")
 TWITCH_CLIENT_SECRET = os.getenv("TWITCH_CLIENT_SECRET")
+
+# Проверяем наличие обязательных переменных
+if not BOT_TOKEN:
+    raise ValueError("BOT_TOKEN не найден в переменных окружения!")
+if not TWITCH_CLIENT_ID:
+    raise ValueError("TWITCH_CLIENT_ID не найден в переменных окружения!")
+if not TWITCH_CLIENT_SECRET:
+    raise ValueError("TWITCH_CLIENT_SECRET не найден в переменных окружения!")
 
 # Глобальные переменные с настройками
 STREAMERS_TO_TRACK = [
     "0TV3CHAU"
 ]
-ALLOWED_CHAT_IDS = {-1002613122205}
-OWNER_ID = 1487919102
 
-CHECK_INTERVAL = os.getenv("CHECK_INTERVAL")
-SCREENSHOT_UPDATE_INTERVAL = os.getenv("SCREENSHOT_UPDATE_INTERVAL")
+# Загружаем ALLOWED_CHAT_IDS из переменной окружения
+allowed_chat_ids_str = os.getenv("ALLOWED_CHAT_IDS", "-1002613122205")
+try:
+    ALLOWED_CHAT_IDS = {int(x.strip()) for x in allowed_chat_ids_str.split(",")}
+except:
+    ALLOWED_CHAT_IDS = {-1002613122205}
+
+# Загружаем OWNER_ID
+try:
+    OWNER_ID = int(os.getenv("OWNER_ID", "1487919102"))
+except:
+    OWNER_ID = 1487919102
+
+# Загружаем интервалы
+try:
+    CHECK_INTERVAL = int(os.getenv("CHECK_INTERVAL", "30"))
+except:
+    CHECK_INTERVAL = 30
+
+try:
+    SCREENSHOT_UPDATE_INTERVAL = int(os.getenv("SCREENSHOT_UPDATE_INTERVAL", "120"))
+except:
+    SCREENSHOT_UPDATE_INTERVAL = 120
 
 # Файл для сохранения настроек
 SETTINGS_FILE = "bot_settings.json"
@@ -176,8 +203,8 @@ def format_notification_text(streamer_login: str, stream_info: dict, random_view
         f"🟣 <b>{title}</b>\n\n"
         f"{random_phrase}\n\n"
         f"<a href='{stream_url}'>twitch.tv/{streamer_login}</a>\n"
-        f"<a href='{stream_url}'>twitch.tv/{streamer_login}</a>\n"
-        f"<a href='{stream_url}'>twitch.tv/{streamer_login}</a>"
+        f"<a href='{stream_url}'>Смотреть на Twitch</a>\n"
+        f"<a href='{stream_url}'>Перейти к стриму</a>"
     )
     
     return text
@@ -310,7 +337,6 @@ async def send_stream_notification(chat_id: int, streamer_login: str, stream_inf
 
     screenshot_path = await take_screenshot(streamer_login, stream_info)
     
-    # Убрана интерактивная кнопка
     try:
         if screenshot_path:
             with open(screenshot_path, 'rb') as photo:
@@ -363,7 +389,6 @@ async def update_stream_screenshot(streamer_login: str, notification_data: dict)
         random_viewers = get_random_viewers()
         text = format_notification_text(streamer_login, current_stream_info, random_viewers)
         
-        # Убрана интерактивная кнопка при обновлении
         with open(new_screenshot_path, 'rb') as photo:
             await bot.edit_message_media(
                 chat_id=notification_data["chat_id"],
@@ -373,7 +398,7 @@ async def update_stream_screenshot(streamer_login: str, notification_data: dict)
                     caption=text,
                     parse_mode=ParseMode.HTML
                 ),
-                reply_markup=None  # Убираем клавиатуру
+                reply_markup=None
             )
         
         await delete_screenshot(new_screenshot_path)
