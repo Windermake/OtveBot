@@ -10,10 +10,11 @@ from pathlib import Path
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
-from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto, CallbackQuery
+from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.enums import ParseMode
 
 # ========== КОНФИГУРАЦИЯ ==========
+# Получаем токен из переменных окружения, если их нет - используем для локального теста
 BOT_TOKEN = os.getenv("BOT_TOKEN") or os.getenv("API_TOKEN") or os.getenv("TELEGRAM_BOT_TOKEN")
 TWITCH_CLIENT_ID = os.getenv("TWITCH_CLIENT_ID")
 TWITCH_CLIENT_SECRET = os.getenv("TWITCH_CLIENT_SECRET")
@@ -23,7 +24,7 @@ STREAMERS_TO_TRACK = [
     "0TV3CHAU"
 ]
 ALLOWED_CHAT_IDS = {-1002613122205}
-OWNER_ID = 1487919102  # ID владельца для отправки логов
+OWNER_ID = 1487919102
 
 CHECK_INTERVAL = os.getenv("CHECK_INTERVAL")
 SCREENSHOT_UPDATE_INTERVAL = os.getenv("SCREENSHOT_UPDATE_INTERVAL")
