@@ -83,6 +83,19 @@ RANDOM_PHRASES = [
     "Пропустишь — пожалеешь!",
 ]
 
+# ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
+def is_allowed(chat_id: int) -> bool:
+    """Проверяет, разрешен ли чат для использования бота"""
+    # Админ всегда может использовать бота в личном чате
+    if chat_id == OWNER_ID:
+        return True
+    # Иначе проверяем по списку разрешенных чатов
+    return chat_id in ALLOWED_CHAT_IDS
+
+def is_admin(user_id: int) -> bool:
+    """Проверяет, является ли пользователь админом"""
+    return user_id == OWNER_ID
+
 # ========== ЗАГРУЗКА/СОХРАНЕНИЕ НАСТРОЕК ==========
 def load_settings():
     """Загружает настройки из файла"""
@@ -513,7 +526,8 @@ async def update_screenshots_task():
 @dp.message(Command("start"))
 async def cmd_start(message: Message):
     """Обработчик команды /start"""
-    if message.chat.id not in ALLOWED_CHAT_IDS:
+    # Админ всегда может использовать бота
+    if not is_allowed(message.chat.id):
         await message.answer("Этот бот не предназначен для использования в этом чате.")
         return
 
@@ -527,13 +541,23 @@ async def cmd_start(message: Message):
         "/add_streamer — добавить стримера\n"
         "/remove_streamer — удалить стримера\n"
     )
+    
+    # Добавляем админские команды для личного чата
+    if message.chat.id == OWNER_ID:
+        text += (
+            "\n<b>Админ-команды (только в ЛС):</b>\n"
+            "/add_chat — добавить чат в список разрешенных\n"
+            "/remove_chat — удалить чат из списка\n"
+            "/list_chats — список разрешенных чатов\n"
+        )
+    
     await message.answer(text, parse_mode=ParseMode.HTML)
 
 
 @dp.message(Command("settings"))
 async def cmd_settings(message: Message):
     """Показывает текущие настройки бота"""
-    if message.chat.id not in ALLOWED_CHAT_IDS:
+    if not is_allowed(message.chat.id):
         return
     
     text = (
@@ -557,7 +581,7 @@ async def cmd_settings(message: Message):
 @dp.message(Command("phrases"))
 async def cmd_phrases(message: Message):
     """Показывает и управляет фразами"""
-    if message.chat.id not in ALLOWED_CHAT_IDS:
+    if not is_allowed(message.chat.id):
         return
     
     keyboard = InlineKeyboardMarkup(
@@ -571,10 +595,119 @@ async def cmd_phrases(message: Message):
     await message.answer("<b>Управление фразами</b>\n\nВыберите действие:", parse_mode=ParseMode.HTML, reply_markup=keyboard)
 
 
+@dp.message(Command("add_chat"))
+async def cmd_add_chat(message: Message):
+    """Добавляет чат в список разрешенных (только для админа в ЛС)"""
+    if message.chat.id != OWNER_ID:
+        await message.answer("Эта команда доступна только админу в личном чате.")
+        return
+    
+    args = message.text.split()
+    if len(args) != 2:
+        await message.answer("Использование: /add_chat <chat_id>\n\nПример: /add_chat -1001234567890")
+        return
+    
+    try:
+        chat_id = int(args[1])
+        ALLOWED_CHAT_IDS.add(chat_id)
+        save_settings()
+        await message.answer(f"✅ Чат {chat_id} добавлен в список разрешенных.\n\nТекущий список: {list(ALLOWED_CHAT_IDS)}")
+        await send_log_to_owner(f"➕ <b>Добавлен чат</b>\nID: {chat_id}")
+    except ValueError:
+        await message.answer("❌ Неверный формат chat_id. Должен быть числом.")
+
+
+@dp.message(Command("remove_chat"))
+async def cmd_remove_chat(message: Message):
+    """Удаляет чат из списка разрешенных (только для админа в ЛС)"""
+    if message.chat.id != OWNER_ID:
+        await message.answer("Эта команда доступна только админу в личном чате.")
+        return
+    
+    args = message.text.split()
+    if len(args) != 2:
+        await message.answer("Использование: /remove_chat <chat_id>\n\nПример: /remove_chat -1001234567890")
+        return
+    
+    try:
+        chat_id = int(args[1])
+        if chat_id in ALLOWED_CHAT_IDS:
+            ALLOWED_CHAT_IDS.remove(chat_id)
+            save_settings()
+            await message.answer(f"✅ Чат {chat_id} удален из списка разрешенных.\n\nТекущий список: {list(ALLOWED_CHAT_IDS)}")
+            await send_log_to_owner(f"➖ <b>Удален чат</b>\nID: {chat_id}")
+        else:
+            await message.answer(f"❌ Чат {chat_id} не найден в списке разрешенных.")
+    except ValueError:
+        await message.answer("❌ Неверный формат chat_id. Должен быть числом.")
+
+
+@dp.message(Command("list_chats"))
+async def cmd_list_chats(message: Message):
+    """Показывает список разрешенных чатов (только для админа)"""
+    if not is_admin(message.from_user.id):
+        await message.answer("Эта команда доступна только админу.")
+        return
+    
+    text = "<b>Разрешенные чаты:</b>\n\n"
+    for chat_id in ALLOWED_CHAT_IDS:
+        text += f"• {chat_id}\n"
+    
+    text += f"\n<b>Всего чатов:</b> {len(ALLOWED_CHAT_IDS)}"
+    
+    await message.answer(text, parse_mode=ParseMode.HTML)
+
+
+@dp.message(Command("add_streamer"))
+async def cmd_add_streamer(message: Message):
+    """Добавляет стримера в список отслеживания (только для админа)"""
+    if not is_admin(message.from_user.id):
+        await message.answer("Эта команда доступна только админу.")
+        return
+    
+    args = message.text.split()
+    if len(args) != 2:
+        await message.answer("Использование: /add_streamer <twitch_login>\n\nПример: /add_streamer ninja")
+        return
+    
+    login = args[1].lower()
+    if login in STREAMERS_TO_TRACK:
+        await message.answer(f"❌ Стример {login} уже отслеживается.")
+        return
+    
+    STREAMERS_TO_TRACK.append(login)
+    save_settings()
+    await message.answer(f"✅ Стример {login} добавлен в список отслеживания.")
+    await send_log_to_owner(f"➕ <b>Добавлен стример</b>\n{login}")
+
+
+@dp.message(Command("remove_streamer"))
+async def cmd_remove_streamer(message: Message):
+    """Удаляет стримера из списка отслеживания (только для админа)"""
+    if not is_admin(message.from_user.id):
+        await message.answer("Эта команда доступна только админу.")
+        return
+    
+    args = message.text.split()
+    if len(args) != 2:
+        await message.answer("Использование: /remove_streamer <twitch_login>\n\nПример: /remove_streamer ninja")
+        return
+    
+    login = args[1].lower()
+    if login not in STREAMERS_TO_TRACK:
+        await message.answer(f"❌ Стример {login} не найден в списке отслеживания.")
+        return
+    
+    STREAMERS_TO_TRACK.remove(login)
+    save_settings()
+    await message.answer(f"✅ Стример {login} удален из списка отслеживания.")
+    await send_log_to_owner(f"➖ <b>Удален стример</b>\n{login}")
+
+
 @dp.callback_query()
 async def handle_phrases_callback(callback: CallbackQuery):
     """Обрабатывает callback'и от кнопок управления фразами"""
-    if callback.from_user.id not in ALLOWED_CHAT_IDS:
+    if not is_allowed(callback.from_user.id):
         await callback.answer("Нет доступа")
         return
     
@@ -630,7 +763,7 @@ async def handle_phrases_callback(callback: CallbackQuery):
 @dp.message()
 async def handle_new_phrase(message: Message):
     """Обрабатывает добавление новой фразы"""
-    if message.chat.id not in ALLOWED_CHAT_IDS:
+    if not is_allowed(message.chat.id):
         return
     
     # Проверяем, ожидаем ли мы добавление фразы (упрощенная логика)
@@ -639,6 +772,7 @@ async def handle_new_phrase(message: Message):
         save_settings()
         await message.answer(f"✅ Фраза добавлена:\n«{message.text}»")
         await send_log_to_owner(f"📝 <b>Добавлена новая фраза</b>\n{message.text}")
+
 
 # ========== ЗАПУСК БОТА ==========
 async def main():
