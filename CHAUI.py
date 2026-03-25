@@ -33,11 +33,11 @@ STREAMERS_TO_TRACK = [
 ]
 
 # Загружаем ALLOWED_CHAT_IDS из переменной окружения
-allowed_chat_ids_str = os.getenv("ALLOWED_CHAT_IDS", "-1002613122205")
+allowed_chat_ids_str = os.getenv("ALLOWED_CHAT_IDS", "-1001745405911")
 try:
     ALLOWED_CHAT_IDS = {int(x.strip()) for x in allowed_chat_ids_str.split(",")}
 except:
-    ALLOWED_CHAT_IDS = {-1002613122205}
+    ALLOWED_CHAT_IDS = {-1001745405911}
 
 # Загружаем OWNER_ID
 try:
