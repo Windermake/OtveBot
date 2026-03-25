@@ -70,18 +70,7 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
 # ========== РАНДОМНЫЕ ФРАЗЫ ДЛЯ ОПОВЕЩЕНИЙ ==========
-RANDOM_PHRASES = [
-    "Прямо сейчас происходит что-то невероятное!",
-    "Заходи, будет весело!",
-    "Не пропусти самое интересное!",
-    "Стрим уже в эфире, ждём тебя!",
-    "Лучший контент прямо сейчас!",
-    "Скучно не будет — обещаю!",
-    "Ты где? Стрим уже начался!",
-    "Заходи посмотреть, что тут творится!",
-    "Срочно на стрим! Там такое...",
-    "Пропустишь — пожалеешь!",
-]
+RANDOM_PHRASES = []
 
 # ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
 def is_allowed(chat_id: int) -> bool:
@@ -216,8 +205,8 @@ def format_notification_text(streamer_login: str, stream_info: dict, random_view
         f"🟣 <b>{title}</b>\n\n"
         f"{random_phrase}\n\n"
         f"<a href='{stream_url}'>twitch.tv/{streamer_login}</a>\n"
-        f"<a href='{stream_url}'>Смотреть на Twitch</a>\n"
-        f"<a href='{stream_url}'>Перейти к стриму</a>"
+        f"<a href='{stream_url}'>twitch.tv/{streamer_login}</a>\n"
+        f"<a href='{stream_url}'>twitch.tv/{streamer_login}</a>"
     )
     
     return text
