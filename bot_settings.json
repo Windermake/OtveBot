@@ -5,10 +5,9 @@
   "check_interval": 30,
   "screenshot_update_interval": 120,
   "streamers_to_track": [
-    "0TV3CHAU",
-    "windermake"
+    "0TV3CHAU"
   ],
   "allowed_chat_ids": [
-    "@profwinder"
+    "@tut_otvechau"
   ]
 }
